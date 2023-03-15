@@ -359,7 +359,7 @@ class API:
         filename : str
             Full path to save pretrained model.
         """
-        torch.save((self.model.state_dict(), self.args, self.model.history), filename)
+        torch.save((self.model.state_dict(), self.args, self.model.history), filename, pickle_protocol=4)
         self.history = self.model.history
         print(f"Model saved to: {filename}")
 

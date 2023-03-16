@@ -221,9 +221,6 @@ def evaluate(autoencoder, datasets):
                 datasets["training"].subset_condition(control=True).genes,
             ),
             "test": stats_test,
-            "ood": evaluate_r2(
-                autoencoder, datasets["ood"], datasets["test"].subset_condition(control=True).genes
-            ),
             "perturbation disentanglement": stats_disent_pert,
             "optimal for perturbations": 1 / datasets["test"].num_drugs
             if datasets["test"].num_drugs > 0

@@ -1305,7 +1305,7 @@ class CPAHistory:
         if 'perturbation disentanglement' in list (self.history):               #check that metrics were evaluated
             self.eval_metrics = True
             self.metrics = pd.DataFrame(columns=["epoch", "split"] + self.header)
-            for split in ["training", "test", "ood"]:
+            for split in ["training", "test"]:
                 df_split = pd.DataFrame(np.array(self.history[split]), columns=self.header)
                 df_split["split"] = split
                 df_split["epoch"] = self.history["stats_epoch"]

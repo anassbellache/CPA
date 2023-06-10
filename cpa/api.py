@@ -705,9 +705,6 @@ class API:
         for cov_pert in self.seen_covars_perts["training"]:
             if self.num_measured_points["training"][cov_pert] > thrh:
                 *cov_list, pert_loop, dose_loop = cov_pert.split("_")
-                print("dose_loop: ", dose_loop)
-                print("pert_loop: ", pert_loop)
-                print("cov_list: ", cov_list)
                 cov_loop = "_".join(cov_list)
                 emb_perts_loop = []
                 if "+" in pert_loop:

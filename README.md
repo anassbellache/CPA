@@ -90,3 +90,52 @@ The paper titled **Predicting cellular responses to complex perturbations in hig
 ## License
 
 This source code is released under the MIT license, included [here](LICENSE).
+
+
+### Personnal modifications:
+
+Modifications are on:
+
+#### cpa/api.py
+
+torch.save((self.model.state_dict(), self.args, self.model.history), filename)
+Has been changed to: 
+torch.save((self.model.state_dict(), self.args, self.model.history), filename, pickle_protocol=4)
+
+Because the model size is too large and requires a different protocol than the one by default
+
+
+
+#### cpa/plotting.py
+
+for split in ["training", "test", "ood"]:
+
+Was changed to:
+
+for split in ["training", "test"]:
+
+Since I did not want to include ood data in the training process. Its supposed to be for final validation.
+
+
+
+
+#### cpa/train.py
+
+The line: 
+
+"ood": evaluate_r2(autoencoder, datasets["ood"], datasets["test"].subset_condition(control=True).genes)
+
+Has been removed from training loop. I use ood data only for final testing after the model finished training 
+
+I've also added pickle_protocol=4 anywhere torch.save() was being called to account for large model size.
+
+
+ 
+ #### cpa/helper.py
+ 
+ I noticed that rank_genes_groups tended to look for 50 differentially expressed genes. This hurt the performance of the model
+ It was beter to set it to 1000 as a default and then look at the performance f the top 50 genes once training is done. 
+ For some reason this worked well and improved performance on the top 50 DE genes.
+ 
+ 
+ 

@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+
 class NBLoss(torch.nn.Module):
     def __init__(self):
         super(NBLoss, self).__init__()
@@ -34,17 +35,19 @@ class NBLoss(torch.nn.Module):
             theta = theta.view(1, theta.size(0))
         log_theta_mu_eps = torch.log(theta + mu + eps)
         res = (
-            theta * (torch.log(theta + eps) - log_theta_mu_eps)
-            + y * (torch.log(mu + eps) - log_theta_mu_eps)
-            + torch.lgamma(y + theta)
-            - torch.lgamma(theta)
-            - torch.lgamma(y + 1)
+                theta * (torch.log(theta + eps) - log_theta_mu_eps)
+                + y * (torch.log(mu + eps) - log_theta_mu_eps)
+                + torch.lgamma(y + theta)
+                - torch.lgamma(theta)
+                - torch.lgamma(y + 1)
         )
         res = _nan2inf(res)
         return -torch.mean(res)
-    
+
+
 def _nan2inf(x):
     return torch.where(torch.isnan(x), torch.zeros_like(x) + np.inf, x)
+
 
 class MLP(torch.nn.Module):
     """
@@ -131,17 +134,17 @@ class CPA(torch.nn.Module):
     """
 
     def __init__(
-        self,
-        num_genes,
-        num_drugs,
-        num_covariates,
-        device="cuda",
-        seed=0,
-        patience=5,
-        loss_ae="gauss",
-        doser_type="mlp",
-        decoder_activation="linear",
-        hparams="",
+            self,
+            num_genes,
+            num_drugs,
+            num_covariates,
+            device="cuda",
+            seed=0,
+            patience=5,
+            loss_ae="gauss",
+            doser_type="mlp",
+            decoder_activation="linear",
+            hparams="",
     ):
         super(CPA, self).__init__()
         # set generic attributes
@@ -237,9 +240,9 @@ class CPA(torch.nn.Module):
         has_covariates = self.num_covariates[0] > 0
         get_params = lambda model, cond: list(model.parameters()) if cond else []
         _parameters = (
-            get_params(self.encoder, True)
-            + get_params(self.decoder, True)
-            + get_params(self.drug_embeddings, has_drugs)
+                get_params(self.encoder, True)
+                + get_params(self.decoder, True)
+                + get_params(self.drug_embeddings, has_drugs)
         )
         for emb in self.covariates_embeddings:
             _parameters.extend(get_params(emb, has_covariates))
@@ -347,12 +350,12 @@ class CPA(torch.nn.Module):
             return self.dosers(drugs) @ self.drug_embeddings.weight
 
     def predict(
-        self, 
-        genes, 
-        drugs, 
-        covariates, 
-        return_latent_basal=False,
-        return_latent_treated=False,
+            self,
+            genes,
+            drugs,
+            covariates,
+            return_latent_basal=False,
+            return_latent_treated=False,
     ):
         """
         Predict "what would have the gene expression `genes` been, had the
@@ -375,7 +378,7 @@ class CPA(torch.nn.Module):
                 emb = emb.to(self.device)
                 latent_treated = latent_treated + emb(
                     covariates[i].argmax(1)
-                )  #argmax because OHE
+                )  # argmax because OHE
 
         gene_reconstructions = self.decoder(latent_treated)
         if self.loss_ae == 'gauss':
@@ -383,14 +386,14 @@ class CPA(torch.nn.Module):
             dim = gene_reconstructions.size(1) // 2
             gene_means = gene_reconstructions[:, :dim]
             gene_vars = F.softplus(gene_reconstructions[:, dim:]).add(1e-3)
-            #gene_vars = gene_reconstructions[:, dim:].exp().add(1).log().add(1e-3)
+            # gene_vars = gene_reconstructions[:, dim:].exp().add(1).log().add(1e-3)
 
         if self.loss_ae == 'nb':
             gene_means = F.softplus(gene_means).add(1e-3)
-            #gene_reconstructions[:, :dim] = torch.clamp(gene_reconstructions[:, :dim], min=1e-4, max=1e4)
-            #gene_reconstructions[:, dim:] = torch.clamp(gene_reconstructions[:, dim:], min=1e-4, max=1e4)
+            # gene_reconstructions[:, :dim] = torch.clamp(gene_reconstructions[:, :dim], min=1e-4, max=1e4)
+            # gene_reconstructions[:, dim:] = torch.clamp(gene_reconstructions[:, dim:], min=1e-4, max=1e4)
         gene_reconstructions = torch.cat([gene_means, gene_vars], dim=1)
-                
+
         if return_latent_basal:
             if return_latent_treated:
                 return gene_reconstructions, latent_basal, latent_treated
@@ -477,10 +480,10 @@ class CPA(torch.nn.Module):
 
             self.optimizer_adversaries.zero_grad()
             (
-                adversary_drugs_loss
-                + self.hparams["penalty_adversary"] * adversary_drugs_penalty
-                + adversary_covariates_loss
-                + self.hparams["penalty_adversary"] * adversary_covariates_penalty
+                    adversary_drugs_loss
+                    + self.hparams["penalty_adversary"] * adversary_drugs_penalty
+                    + adversary_covariates_loss
+                    + self.hparams["penalty_adversary"] * adversary_covariates_penalty
             ).backward()
             self.optimizer_adversaries.step()
         else:
@@ -488,9 +491,9 @@ class CPA(torch.nn.Module):
             if self.num_drugs > 0:
                 self.optimizer_dosers.zero_grad()
             (
-                reconstruction_loss
-                - self.hparams["reg_adversary"] * adversary_drugs_loss
-                - self.hparams["reg_adversary"] * adversary_covariates_loss
+                    reconstruction_loss
+                    - self.hparams["reg_adversary"] * adversary_drugs_loss
+                    - self.hparams["reg_adversary"] * adversary_covariates_loss
             ).backward()
             self.optimizer_autoencoder.step()
             if self.num_drugs > 0:

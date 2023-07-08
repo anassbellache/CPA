@@ -4,21 +4,22 @@ import os
 import pprint
 import time
 from collections import defaultdict
-from typing import Optional, Union, Tuple
 
 import numpy as np
 import pandas as pd
 import scanpy as sc
 import torch
+from sklearn.metrics import r2_score
+from sklearn.metrics.pairwise import cosine_distances, euclidean_distances
 from torch.distributions import (
     NegativeBinomial,
     Normal
 )
-from cpa.train import evaluate, prepare_cpa
-from cpa.helper import _convert_mean_disp_to_counts_logits
-from sklearn.metrics import r2_score
-from sklearn.metrics.pairwise import cosine_distances, euclidean_distances
 from tqdm import tqdm
+
+from cpa.helper import _convert_mean_disp_to_counts_logits
+from cpa.train import evaluate, prepare_cpa
+
 
 class API:
     """
@@ -26,23 +27,23 @@ class API:
     """
 
     def __init__(
-        self,
-        data,
-        perturbation_key="condition",
-        covariate_keys=["cell_type"],
-        split_key="split",
-        dose_key="dose_val",
-        control=None,
-        doser_type="mlp",
-        decoder_activation="linear",
-        loss_ae="gauss",
-        patience=200,
-        seed=0,
-        pretrained=None,
-        device="cuda",
-        save_dir="/tmp/",  # directory to save the model
-        hparams={},
-        only_parameters=False,
+            self,
+            data,
+            perturbation_key="condition",
+            covariate_keys=["cell_type"],
+            split_key="split",
+            dose_key="dose_val",
+            control=None,
+            doser_type="mlp",
+            decoder_activation="linear",
+            loss_ae="gauss",
+            patience=200,
+            seed=0,
+            pretrained=None,
+            device="cuda",
+            save_dir="/tmp/",  # directory to save the model
+            hparams={},
+            only_parameters=False,
     ):
         """
         Parameters
@@ -185,8 +186,8 @@ class API:
             for pert in self.measured_points["ood"][cov].keys():
                 if pert in self.measured_points["training"][cov].keys():
                     self.measured_points["all"][cov][pert] = (
-                        self.measured_points["training"][cov][pert].copy()
-                        + self.measured_points["ood"][cov][pert].copy()
+                            self.measured_points["training"][cov][pert].copy()
+                            + self.measured_points["ood"][cov][pert].copy()
                     )
                 else:
                     self.measured_points["all"][cov][pert] = self.measured_points[
@@ -224,15 +225,15 @@ class API:
         self.model.load_state_dict(state_dict)
 
     def train(
-        self,
-        max_epochs=1,
-        checkpoint_freq=20,
-        run_eval=False,
-        max_minutes=60,
-        filename="model.pt",
-        batch_size=None,
-        save_dir=None,
-        seed=0,
+            self,
+            max_epochs=1,
+            checkpoint_freq=20,
+            run_eval=False,
+            max_minutes=60,
+            filename="model.pt",
+            batch_size=None,
+            save_dir=None,
+            seed=0,
     ):
         """
         Parameters
@@ -548,7 +549,7 @@ class API:
             return emb
 
     def latent_dose_response(
-        self, perturbations=None, dose=None, contvar_min=0, contvar_max=1, n_points=100
+            self, perturbations=None, dose=None, contvar_min=0, contvar_max=1, n_points=100
     ):
         """
         Parameters
@@ -611,12 +612,12 @@ class API:
         return df
 
     def latent_dose_response2D(
-        self,
-        perturbations,
-        dose=None,
-        contvar_min=0,
-        contvar_max=1,
-        n_points=100,
+            self,
+            perturbations,
+            dose=None,
+            contvar_min=0,
+            contvar_max=1,
+            n_points=100,
     ):
         """
         Parameters
@@ -717,8 +718,8 @@ class API:
 
                     emb_perts_loop = emb_perts_loop[0].concatenate(emb_perts_loop[1:])
                     X = emb_covars.X[
-                        emb_covars.obs.covars == cov_loop
-                    ] + np.expand_dims(
+                            emb_covars.obs.covars == cov_loop
+                            ] + np.expand_dims(
                         emb_perts_loop.X[
                             emb_perts_loop.obs.pert_dose.isin(
                                 [
@@ -734,8 +735,8 @@ class API:
                 else:
                     emb_perts = self.get_drug_embeddings(dose=float(dose_loop))
                     X = (
-                        emb_covars.X[emb_covars.obs.covars == cov_loop]
-                        + emb_perts.X[emb_perts.obs.condition == pert_loop]
+                            emb_covars.X[emb_covars.obs.covars == cov_loop]
+                            + emb_perts.X[emb_perts.obs.condition == pert_loop]
                     )
                 tmp_ad = sc.AnnData(X=X)
                 tmp_ad.obs["cov_pert"] = "_".join([cov_loop, pert_loop, dose_loop])
@@ -801,15 +802,15 @@ class API:
         return min_cos_dist, min_eucl_dist, closest_cond_cos, closest_cond_eucl
 
     def predict(
-        self,
-        genes,
-        cov,
-        pert,
-        dose,
-        uncertainty=True,
-        return_anndata=True,
-        sample=False,
-        n_samples=1,
+            self,
+            genes,
+            cov,
+            pert,
+            dose,
+            uncertainty=True,
+            return_anndata=True,
+            sample=False,
+            n_samples=1,
     ):
         """Predict values of control 'genes' conditions specified in df.
 
@@ -925,7 +926,7 @@ class API:
                     .numpy()
                     .reshape(-1, dim)
                 )
-                sampled_gexp[sampled_gexp < 0] = 0 #set negative values to 0, since gexp can't be negative
+                sampled_gexp[sampled_gexp < 0] = 0  # set negative values to 0, since gexp can't be negative
                 gene_means_list.append(sampled_gexp)
             else:
                 df_list.append(
@@ -971,12 +972,12 @@ class API:
             return gene_means, gene_vars, df_obs
 
     def get_latent(
-        self,
-        genes,
-        cov,
-        pert,
-        dose,
-        return_anndata=True,
+            self,
+            genes,
+            cov,
+            pert,
+            dose,
+            return_anndata=True,
     ):
         """Get latent values of control 'genes' with conditions specified in df.
 
@@ -1044,10 +1045,10 @@ class API:
                 covars.append(covar_ohe.expand([num, covar_ohe.shape[0]]).clone())
 
             _, latent_treated = self.model.predict(
-                    genes,
-                    drugs, 
-                    covars,
-                    return_latent_treated=True,
+                genes,
+                drugs,
+                covars,
+                return_latent_treated=True,
             )
 
             latent_treated = latent_treated.cpu().clone().detach().numpy()
@@ -1071,15 +1072,15 @@ class API:
             return latent, df_obs
 
     def get_response(
-        self,
-        genes_control=None,
-        doses=None,
-        contvar_min=None,
-        contvar_max=None,
-        n_points=10,
-        ncells_max=100,
-        perturbations=None,
-        control_name="test",
+            self,
+            genes_control=None,
+            doses=None,
+            contvar_min=None,
+            contvar_max=None,
+            n_points=10,
+            ncells_max=100,
+            perturbations=None,
+            control_name="test",
     ):
         """Decoded dose response data frame.
 
@@ -1123,8 +1124,8 @@ class API:
 
         response = pd.DataFrame(
             columns=self.covariate_keys
-            + [self.perturbation_key, self.dose_key, "response"]
-            + list(self.var_names)
+                    + [self.perturbation_key, self.dose_key, "response"]
+                    + list(self.var_names)
         )
 
         if ncells_max < len(genes_control):
@@ -1154,9 +1155,9 @@ class API:
                             )
                             predicted_data = np.mean(gene_means, axis=0).reshape(-1)
                             response.loc[j] = (
-                                covar_combo.split("_")
-                                + [drug, dose, np.linalg.norm(predicted_data)]
-                                + list(predicted_data)
+                                    covar_combo.split("_")
+                                    + [drug, dose, np.linalg.norm(predicted_data)]
+                                    + list(predicted_data)
                             )
                             j += 1
         return response
@@ -1182,8 +1183,8 @@ class API:
 
         reference_response_curve = pd.DataFrame(
             columns=self.covariate_keys
-            + [self.perturbation_key, self.dose_key, "split", "num_cells", "response"]
-            + list(self.var_names)
+                    + [self.perturbation_key, self.dose_key, "split", "num_cells", "response"]
+                    + list(self.var_names)
         )
 
         dataset_ctr = self.datasets["training"].subset_condition(control=True)
@@ -1207,9 +1208,9 @@ class API:
                     if len(idx):
                         y_true = dataset.genes[idx, :].numpy().mean(axis=0)
                         reference_response_curve.loc[i] = (
-                            covars
-                            + [drug, dose, split, len(idx), np.linalg.norm(y_true)]
-                            + list(y_true)
+                                covars
+                                + [drug, dose, split, len(idx), np.linalg.norm(y_true)]
+                                + list(y_true)
                         )
 
                         i += 1
@@ -1220,17 +1221,17 @@ class API:
         return reference_response_curve
 
     def get_response2D(
-        self,
-        perturbations,
-        covar,
-        genes_control=None,
-        doses=None,
-        contvar_min=None,
-        contvar_max=None,
-        n_points=10,
-        ncells_max=100,
-        #fixed_drugs="",
-        #fixed_doses="",
+            self,
+            perturbations,
+            covar,
+            genes_control=None,
+            doses=None,
+            contvar_min=None,
+            contvar_max=None,
+            n_points=10,
+            ncells_max=100,
+            # fixed_drugs="",
+            # fixed_doses="",
     ):
         """Decoded dose response data frame.
 
@@ -1281,7 +1282,7 @@ class API:
         genes_control = genes_control[idx]
 
         response = pd.DataFrame(
-            columns=perturbations+["response"]+list(self.var_names)
+            columns=perturbations + ["response"] + list(self.var_names)
         )
 
         drug = perturbations[0] + "+" + perturbations[1]
@@ -1295,15 +1296,15 @@ class API:
                 gene_means, _, _ = self.predict(
                     genes_control,
                     cov=covar,
-                    pert=[drug],# + fixed_drugs],
-                    dose=[dose],# + fixed_doses],
+                    pert=[drug],  # + fixed_drugs],
+                    dose=[dose],  # + fixed_doses],
                     return_anndata=False,
                 )
                 predicted_data = np.mean(gene_means, axis=0).reshape(-1)
                 response.loc[i] = (
-                    dose_comb[i]
-                    + [np.linalg.norm(predicted_data)]
-                    + list(predicted_data)
+                        dose_comb[i]
+                        + [np.linalg.norm(predicted_data)]
+                        + list(predicted_data)
                 )
                 i += 1
 
@@ -1342,16 +1343,16 @@ class API:
         self.model.eval()
         scores = pd.DataFrame(
             columns=self.covariate_keys
-            + [
-                self.perturbation_key,
-                self.dose_key,
-                "R2_mean",
-                "R2_mean_DE",
-                "R2_var",
-                "R2_var_DE",
-                "model",
-                "num_cells",
-            ]
+                    + [
+                        self.perturbation_key,
+                        self.dose_key,
+                        "R2_mean",
+                        "R2_mean_DE",
+                        "R2_var",
+                        "R2_var_DE",
+                        "model",
+                        "num_cells",
+                    ]
         )
 
         num, dim = genes_control.size(0), genes_control.size(1)
@@ -1390,7 +1391,7 @@ class API:
                 # predicted means and variances
                 yp_m = mean_predict.mean(0)
                 yp_v = var_predict.mean(0)
-                #yp_v = np.var(mean_predict, axis=0)
+                # yp_v = np.var(mean_predict, axis=0)
 
                 mean_score = r2_score(yt_m, yp_m)
                 var_score = r2_score(yt_v, yp_v)
@@ -1417,7 +1418,6 @@ class API:
                     mean_score_de_bl = r2_score(yt_m[de_idx], yp_m_bl[de_idx])
                     var_score_de_bl = r2_score(yt_v[de_idx], yp_v_bl[de_idx])
 
-
                     scores.loc[icond] = pert_category.split("_") + [
                         mean_score_bl,
                         mean_score_de_bl,
@@ -1428,6 +1428,7 @@ class API:
                     ]
                     icond += 1
         return scores
+
 
 def get_reference_from_combo(perturbations_list, datasets, splits=["training", "ood"]):
     """
@@ -1450,7 +1451,7 @@ def get_reference_from_combo(perturbations_list, datasets, splits=["training", "
                 ncells = len(
                     full_dataset.pert_categories[
                         full_dataset.pert_categories == pert_cat
-                    ]
+                        ]
                 )
                 for j in range(ndrugs):
                     ref[pert_list[j]].append(float(dose_list[j]))

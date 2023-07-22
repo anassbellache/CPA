@@ -10,7 +10,6 @@ import numpy as np
 import torch
 from cpa.data import load_dataset_splits
 from cpa.model import CPA, MLP
-from cpa.baselines import BaselineMLPModel
 from sklearn.metrics import r2_score
 from torch.autograd import Variable
 from torch.distributions import NegativeBinomial
@@ -365,121 +364,6 @@ def train_cpa(args, return_model=False):
 
     if return_model:
         return autoencoder, datasets
-
-
-def prepare_baseline(args):
-    """
-    Prepares a baseline autoencoder
-    """
-
-    # Load the data
-    datasets = load_dataset_splits(args)
-
-    # Initialize the model
-    baseline_model = BaselineMLPModel(
-        num_genes=datasets["num_genes"],
-        num_drugs=datasets["num_drugs"],
-        num_covariates=datasets["num_covariates"],
-        embedding_dim=args["embedding_dim"],
-        hidden_units=args["hidden_units"],
-        device=args["device"],
-        hparams=args["hparams"],
-        loss=args["loss"]
-    )
-
-    return baseline_model, datasets
-
-
-def train_baseline(args, return_model=False):
-    """
-    Trains a baseline autoencoder
-    """
-
-    baseline_model, datasets = prepare_baseline(args)
-
-    datasets.update(
-        {
-            "loader_tr": torch.utils.data.DataLoader(
-                datasets["training"],
-                batch_size=baseline_model.hparams["batch_size"],
-                shuffle=True,
-            )
-        }
-    )
-
-    pjson({"training_args": args})
-    pjson({"baseline_model_params": baseline_model.hparams})
-    args["hparams"] = baseline_model.hparams
-
-    start_time = time.time()
-    for epoch in range(args["max_epochs"]):
-        epoch_training_stats = defaultdict(float)
-
-        for data in datasets["loader_tr"]:
-            genes, drugs, covariates = data[0], data[1], data[2:]
-
-            minibatch_training_stats = baseline_model.update(genes, drugs, covariates)
-
-            for key, val in minibatch_training_stats.items():
-                epoch_training_stats[key] += val
-
-        for key, val in epoch_training_stats.items():
-            epoch_training_stats[key] = val / len(datasets["loader_tr"])
-            if not (key in baseline_model.history.keys()):
-                baseline_model.history[key] = []
-            baseline_model.history[key].append(epoch_training_stats[key])
-        baseline_model.history["epoch"].append(epoch)
-
-        ellapsed_minutes = (time.time() - start_time) / 60
-        baseline_model.history["elapsed_time_min"] = ellapsed_minutes
-
-        # decay learning rate if necessary
-        # also check stopping condition: patience ran out OR
-        # time ran out OR max epochs achieved
-        stop = ellapsed_minutes > args["max_minutes"] or (
-                epoch == args["max_epochs"] - 1
-        )
-
-        if (epoch % args["checkpoint_freq"]) == 0 or stop:
-            evaluation_stats = evaluate(baseline_model, datasets)
-            for key, val in evaluation_stats.items():
-                if not (key in baseline_model.history.keys()):
-                    baseline_model.history[key] = []
-                baseline_model.history[key].append(val)
-            baseline_model.history["stats_epoch"].append(epoch)
-
-            pjson(
-                {
-                    "epoch": epoch,
-                    "training_stats": epoch_training_stats,
-                    "evaluation_stats": evaluation_stats,
-                    "ellapsed_minutes": ellapsed_minutes,
-                }
-            )
-
-            torch.save(
-                (baseline_model.state_dict(), args, baseline_model.history),
-                os.path.join(
-                    args["save_dir"],
-                    "model_seed={}_epoch={}.pt".format(args["seed"], epoch),
-                ),
-                pickle_protocol=4
-            )
-
-            pjson(
-                {
-                    "model_saved": "model_seed={}_epoch={}.pt\n".format(
-                        args["seed"], epoch
-                    )
-                }
-            )
-            stop = stop or baseline_model.early_stopping(np.mean(evaluation_stats["test"]))
-            if stop:
-                pjson({"early_stop": epoch})
-                break
-
-    if return_model:
-        return baseline_model, datasets
 
 
 def parse_arguments():
